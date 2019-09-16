@@ -4,29 +4,37 @@ import matplotlib.pyplot as plt
 
 raw_data = pd.read_csv('Data/Trainset.csv')
 raw_data.dropna(axis=0, how='any', inplace=True)
-data = np.array(raw_data)
-m_init = data.shape[0]
+raw_data = np.array(raw_data)
 
 months = []
-for i in range(m_init):
-    mon = data[i][10]
-    if mon not in months:
-        months.append(mon)
-    data[i][10] = months.index(mon)
 
-    if data[i][15] == 'Returning_Visitor':
-        data[i][15] = 2
-    elif data[i][15] == 'New_Visitor':
-        data[i][15] = 1
-    elif data[i][15] == 'Other':
-        data[i][15] = 0
 
-    if data[i][16] is True:
-        data[i][16] = 1
-    elif data[i][16] is False:
-        data[i][16] = 0
+def process_data(array):
+    m_init = array.shape[0]
+    for i in range(m_init):
+        mon = array[i][10]
+        if mon not in months:
+            months.append(mon)
+        array[i][10] = months.index(mon)
 
-data = np.array(list(data), dtype=np.float)
+        if array[i][15] == 'Returning_Visitor':
+            array[i][15] = 2
+        elif array[i][15] == 'New_Visitor':
+            array[i][15] = 1
+        elif array[i][15] == 'Other':
+            array[i][15] = 0
+
+        if array[i][16] is True:
+            array[i][16] = 1
+        elif array[i][16] is False:
+            array[i][16] = 0
+    array = np.array(list(array), dtype=np.float)
+    return array
+
+
+print(raw_data.shape)
+data = process_data(raw_data)
+print(data.shape)
 
 train = data[:7500].T
 test = data[7500:].T
@@ -39,7 +47,7 @@ Y_train = train[-1].reshape(1, m_train)
 X_test = test[:-1]
 m_test = X_test.shape[1]
 Y_test = test[-1].reshape(1, m_test)
-
+print(Y_train)
 print(X_train.shape)
 print(Y_train.shape)
 print(X_test.shape)
@@ -48,6 +56,7 @@ print(Y_test.shape)
 X_norm = np.max(X_train, axis=1, keepdims=True)
 X_train = X_train / X_norm
 X_test = X_test / X_norm
+
 
 def sigmoid(z):
     """ Compute the sigmoid of z """
@@ -130,7 +139,7 @@ def predict(w, b, X):
 
     # Compute vector "A" predicting the probabilities of a cat being present in the picture
     A = sigmoid(np.dot(w.T, X) + b)
-
+    print(A)
     for k in range(A.shape[1]):
 
         # Convert probabilities A[0,i] to actual predictions p[0,i]
@@ -182,6 +191,26 @@ plt.ylabel('cost')
 plt.xlabel('iterations (per hundreds)')
 plt.title("Learning rate =" + str(d["learning_rate"]))
 plt.show()
+
+# Get Output for Final Test Cases
+
+test_data = pd.read_csv('Data/xtest.csv')
+test_data.dropna(axis=0, how='any', inplace=True)
+test_data = np.array(test_data)
+
+test_cases = process_data(test_data[:, 1:])
+X_Test_final = test_cases.T / X_norm
+
+y_predict = predict(d["w"], d["b"], X_Test_final)
+
+y_predict = np.array(y_predict, dtype=np.int)
+print(np.count_nonzero(y_predict))
+df = pd.DataFrame(y_predict.T)
+df.index += 1
+df.to_csv('Data/MyPredict.csv', sep=',', encoding='utf-8', header=['Revenue'], index_label='ID')
+print(y_predict)
+
+# Choosing the Learning Rate
 
 learning_rates = [0.01, 0.001, 0.0001]
 models = {}
