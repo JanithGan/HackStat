@@ -232,7 +232,7 @@ def predict(parameters, X):
     return predictions
 
 
-params = nn_model(X_train, Y_train, n_h=5, num_iterations=10000, learning_rate=0.3, print_cost=True)
+params = nn_model(X_train, Y_train, n_h=4, num_iterations=10000, learning_rate=4, print_cost=True)
 
 # Training Set Accuracy
 predict_train = predict(params, X_train)
@@ -245,7 +245,7 @@ print('Accuracy: %d' % float(
     (np.dot(Y_test, predict_test.T) + np.dot(1 - Y_test, 1 - predict_test.T)) / float(Y_test.size) * 100) + '%')
 
 # Test Cases Prediction
-predict_final = predict(params, X_test)
+predict_final = predict(params, X_final)
 
 # Upload to File
 df = pd.DataFrame(predict_final.T, dtype=int)
