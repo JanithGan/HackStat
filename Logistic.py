@@ -2,60 +2,77 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-raw_data = pd.read_csv('Data/Trainset.csv')
-raw_data.dropna(axis=0, how='any', inplace=True)
-raw_data = np.array(raw_data)
+# Reading Train Set Data File
+raw_d1 = pd.read_csv('Data/Trainset.csv')
+raw_d1.dropna(axis=0, how='any', inplace=True)
+
+# Reading Test Case Set Data File
+raw_d2 = pd.read_csv('Data/xtest.csv')
+raw_d1.dropna(axis=0, how='any', inplace=True)
+
+# Convert Data to ndArrays
+train_data = np.array(raw_d1)
+test_data = np.array(raw_d2)[:, 1:]
 
 months = []
 
 
 def process_data(array):
+    """ This function pre-processes raw data"""
     m_init = array.shape[0]
     for i in range(m_init):
-        mon = array[i][10]
+        mon = array[i][10]  # Assign Values for Months
         if mon not in months:
             months.append(mon)
         array[i][10] = months.index(mon)
 
-        if array[i][15] == 'Returning_Visitor':
+        if array[i][15] == 'Returning_Visitor':  # Assign Values for Visitor Types
             array[i][15] = 2
         elif array[i][15] == 'New_Visitor':
             array[i][15] = 1
         elif array[i][15] == 'Other':
             array[i][15] = 0
 
-        if array[i][16] is True:
+        if array[i][16] is True:  # Assign Values for Booleans
             array[i][16] = 1
         elif array[i][16] is False:
             array[i][16] = 0
+
     array = np.array(list(array), dtype=np.float)
     return array
 
 
-print(raw_data.shape)
-data = process_data(raw_data)
-print(data.shape)
+# Processing Data
+data = process_data(train_data)
+test = process_data(test_data)
 
-train = data[:7500].T
-test = data[7500:].T
+# Total Data
+X_tot = data[:, :-1].T
+m_tot = X_tot.shape[1]
+Y_tot = data[:, -1].reshape(1, m_tot)
 
-X_train = train[:-1]
-n = X_train.shape[0]
+div_const = 7500
+
+# Training Set Data
+X_train = data[:div_const, :-1].T
 m_train = X_train.shape[1]
-Y_train = train[-1].reshape(1, m_train)
+Y_train = data[:div_const, -1].reshape(1, m_train)
 
-X_test = test[:-1]
+# Test Set Data
+X_test = data[div_const:, :-1].T
 m_test = X_test.shape[1]
-Y_test = test[-1].reshape(1, m_test)
-print(Y_train)
-print(X_train.shape)
-print(Y_train.shape)
-print(X_test.shape)
-print(Y_test.shape)
+Y_test = data[div_const:, -1].reshape(1, m_test)
 
-X_norm = np.max(X_train, axis=1, keepdims=True)
+# Test Cases Data
+X_final = test.T
+m_final = X_final[1]
+
+# Normalizing Data
+X_norm = np.linalg.norm(X_tot, axis=1, keepdims=True)
+X_tot = X_tot / X_norm
 X_train = X_train / X_norm
 X_test = X_test / X_norm
+X_final = X_final / X_norm
 
 
 def sigmoid(z):
@@ -139,7 +156,6 @@ def predict(w, b, X):
 
     # Compute vector "A" predicting the probabilities of a cat being present in the picture
     A = sigmoid(np.dot(w.T, X) + b)
-    print(A)
     for k in range(A.shape[1]):
 
         # Convert probabilities A[0,i] to actual predictions p[0,i]
@@ -185,6 +201,7 @@ def model(x_train, y_train, x_test, y_test, num_iterations=2000, learning_rate=0
 
 d = model(X_train, Y_train, X_test, Y_test, num_iterations=5000, learning_rate=0.01, print_cost=True)
 
+# Plotting Cost with Iterations
 costs = np.squeeze(d['costs'])
 plt.plot(costs)
 plt.ylabel('cost')
@@ -192,40 +209,35 @@ plt.xlabel('iterations (per hundreds)')
 plt.title("Learning rate =" + str(d["learning_rate"]))
 plt.show()
 
-# Get Output for Final Test Cases
+# Test Cases Prediction
+predict_final = predict(d["w"], d["b"], X_final)
+print("1 Count : ", np.count_nonzero(predict_final))
 
-test_data = pd.read_csv('Data/xtest.csv')
-test_data.dropna(axis=0, how='any', inplace=True)
-test_data = np.array(test_data)
-
-test_cases = process_data(test_data[:, 1:])
-X_Test_final = test_cases.T / X_norm
-
-y_predict = predict(d["w"], d["b"], X_Test_final)
-
-y_predict = np.array(y_predict, dtype=np.int)
-print(np.count_nonzero(y_predict))
-df = pd.DataFrame(y_predict.T)
+# Upload to File
+df = pd.DataFrame(predict_final.T, dtype=int)
 df.index += 1
-df.to_csv('Data/MyPredict.csv', sep=',', encoding='utf-8', header=['Revenue'], index_label='ID')
-print(y_predict)
+df.to_csv('Data/Predict_reg.csv', sep=',', encoding='utf-8', header=['Revenue'], index_label='ID')
 
-# Choosing the Learning Rate
 
-learning_rates = [0.01, 0.001, 0.0001]
-models = {}
-for i in learning_rates:
-    print("learning rate is: " + str(i))
-    models[str(i)] = model(X_train, Y_train, X_test, Y_test, num_iterations=1500, learning_rate=i, print_cost=False)
-    print('\n' + "-------------------------------------------------------" + '\n')
+def learning_rate_check():
+    """ For Choosing the Correct Learning Rate """
+    learning_rates = [0.01, 0.001, 0.0001]
+    models = {}
+    for i in learning_rates:
+        print("learning rate is: " + str(i))
+        models[str(i)] = model(X_train, Y_train, X_test, Y_test, num_iterations=1500, learning_rate=i, print_cost=False)
+        print('\n' + "-------------------------------------------------------" + '\n')
 
-for i in learning_rates:
-    plt.plot(np.squeeze(models[str(i)]["costs"]), label=str(models[str(i)]["learning_rate"]))
+    for i in learning_rates:
+        plt.plot(np.squeeze(models[str(i)]["costs"]), label=str(models[str(i)]["learning_rate"]))
 
-plt.ylabel('cost')
-plt.xlabel('iterations (hundreds)')
+    plt.ylabel('cost')
+    plt.xlabel('iterations (hundreds)')
 
-legend = plt.legend(loc='upper center', shadow=True)
-frame = legend.get_frame()
-frame.set_facecolor('0.90')
-plt.show()
+    legend = plt.legend(loc='upper center', shadow=True)
+    frame = legend.get_frame()
+    frame.set_facecolor('0.90')
+    plt.show()
+
+
+learning_rate_check()

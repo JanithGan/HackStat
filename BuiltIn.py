@@ -2,87 +2,97 @@ import numpy as np
 import pandas as pd
 import sklearn.linear_model
 
-# This is the Code for Built-in sklearn Linear Regression
+# Reading Train Set Data File
+raw_d1 = pd.read_csv('Data/Trainset.csv')
+raw_d1.dropna(axis=0, how='any', inplace=True)
 
-raw_data = pd.read_csv('Data/Trainset.csv')
-raw_data.dropna(axis=0, how='any', inplace=True)
-raw_data = np.array(raw_data)
+# Reading Test Case Set Data File
+raw_d2 = pd.read_csv('Data/xtest.csv')
+raw_d1.dropna(axis=0, how='any', inplace=True)
+
+# Convert Data to ndArrays
+train_data = np.array(raw_d1)
+test_data = np.array(raw_d2)[:, 1:]
 
 months = []
 
 
 def process_data(array):
+    """ This function pre-processes raw data"""
     m_init = array.shape[0]
     for i in range(m_init):
-        mon = array[i][10]
+        mon = array[i][10]  # Assign Values for Months
         if mon not in months:
             months.append(mon)
         array[i][10] = months.index(mon)
 
-        if array[i][15] == 'Returning_Visitor':
+        if array[i][15] == 'Returning_Visitor':  # Assign Values for Visitor Types
             array[i][15] = 2
         elif array[i][15] == 'New_Visitor':
             array[i][15] = 1
         elif array[i][15] == 'Other':
             array[i][15] = 0
 
-        if array[i][16] is True:
+        if array[i][16] is True:  # Assign Values for Booleans
             array[i][16] = 1
         elif array[i][16] is False:
             array[i][16] = 0
+
     array = np.array(list(array), dtype=np.float)
     return array
 
 
-data = process_data(raw_data)
-print(data.shape)
-X_tot = data[:, :-1]
-Y_tot = data[:, -1]
-print(data.shape)
+# Processing Data
+data = process_data(train_data)
+test = process_data(test_data)
 
-X_train = data[:, :-1].T
-Y_train = data[:, -1].T
+# Total Data
+X_tot = data[:, :-1].T
+m_tot = X_tot.shape[1]
+Y_tot = data[:, -1].reshape(1, m_tot)
 
-X_norm = np.linalg.norm(X_train, axis=1, keepdims=True)
+div_const = 7500
+
+# Training Set Data
+X_train = data[:div_const, :-1].T
+m_train = X_train.shape[1]
+Y_train = data[:div_const, -1].reshape(1, m_train)
+
+# Test Set Data
+X_test = data[div_const:, :-1].T
+m_test = X_test.shape[1]
+Y_test = data[div_const:, -1].reshape(1, m_test)
+
+# Test Cases Data
+X_final = test.T
+m_final = X_final[1]
+
+# Normalizing Data
+X_norm = np.linalg.norm(X_tot, axis=1, keepdims=True)
+X_tot = X_tot / X_norm
 X_train = X_train / X_norm
+X_test = X_test / X_norm
+X_final = X_final / X_norm
 
-# train = data[:7500].T
-# test = data[7500:].T
-#
-# X_train = train[:-1]
-# n = X_train.shape[0]
-# m_train = X_train.shape[1]
-# Y_train = train[-1]  # .reshape(1, m_train)
-#
-# X_test = test[:-1]
-# m_test = X_test.sha pe[1]
-# Y_test = test[-1].reshape(1, m_test)
-#
-# X_norm = np.linalg.norm(X_train, axis=1, keepdims=True)
-# X_train = X_train / X_norm
-# X_test = X_test / X_norm
-
+# Training Linear Regression Using SkLearn
 clf = sklearn.linear_model.LogisticRegressionCV(max_iter=10000)
-clf.fit(X_train.T, Y_train.T)
-s = clf.predict(X_train.T)
+clf.fit(X_tot.T, Y_tot.T)
 
-print("train accuracy: {} %".format(100 - np.mean(np.abs(s - Y_train)) * 100))
-print(np.count_nonzero(s))
+# Training Set Accuracy
+predict_train = clf.predict(X_train.T)
+print("train accuracy: {} %".format(100 - np.mean(np.abs(predict_train - Y_train)) * 100))
+print("1 Count : ", np.count_nonzero(predict_train))
 
-# t = clf.predict(X_test.T)
-# print("test accuracy: {} %".format(100 - np.mean(np.abs(t - Y_test)) * 100))
-# print(np.count_nonzero(t))
+# Test Set Accuracy
+predict_test = clf.predict(X_test.T)
+print("test accuracy: {} %".format(100 - np.mean(np.abs(predict_test - Y_test)) * 100))
+print("1 Count : ", np.count_nonzero(predict_test))
 
-test_data = pd.read_csv('Data/xtest.csv')
-test_data.dropna(axis=0, how='any', inplace=True)
-test_data = np.array(test_data)
+# Test Cases Prediction
+predict_final = clf.predict(X_final.T)
+print("1 Count : ", np.count_nonzero(predict_final))
 
-test_data = test_data[:, 1:]
-test_cases = process_data(test_data).T
-X_Test_final = test_cases / X_norm
-y_pred = clf.predict(X_Test_final.T)
-print(np.count_nonzero(y_pred))
-
-df = pd.DataFrame(y_pred.T, dtype=int)
+# Upload to File
+df = pd.DataFrame(predict_final.T, dtype=int)
 df.index += 1
-df.to_csv('Data/MyPredict1.csv', sep=',', encoding='utf-8', header=['Revenue'], index_label='ID')
+df.to_csv('Data/Predict_skl.csv', sep=',', encoding='utf-8', header=['Revenue'], index_label='ID')
