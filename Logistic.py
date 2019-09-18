@@ -69,10 +69,21 @@ m_final = X_final[1]
 
 # Normalizing Data
 X_norm = np.linalg.norm(X_tot, axis=1, keepdims=True)
-X_tot = X_tot / X_norm
-X_train = X_train / X_norm
-X_test = X_test / X_norm
-X_final = X_final / X_norm
+
+X_avg = np.mean(X_train, axis=1, keepdims=True)
+X_max = np.max(X_train, axis=1, keepdims=True)
+X_min = np.min(X_train, axis=1, keepdims=True)
+
+
+def normalize(array):
+    array = (array - X_avg) / (X_max - X_min)
+    return array
+
+
+X_tot = normalize(X_tot)
+X_train = normalize(X_train)
+X_test = normalize(X_test)
+X_final = normalize(X_final)
 
 
 def sigmoid(z):

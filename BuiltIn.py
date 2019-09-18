@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import sklearn.linear_model
+from sklearn.ensemble import RandomForestClassifier
 
 # Reading Train Set Data File
 raw_d1 = pd.read_csv('Data/Trainset.csv')
@@ -69,14 +70,26 @@ m_final = X_final[1]
 
 # Normalizing Data
 X_norm = np.linalg.norm(X_tot, axis=1, keepdims=True)
-X_tot = X_tot / X_norm
-X_train = X_train / X_norm
-X_test = X_test / X_norm
-X_final = X_final / X_norm
+
+X_avg = np.mean(X_tot, axis=1, keepdims=True)
+X_max = np.max(X_tot, axis=1, keepdims=True)
+X_min = np.min(X_tot, axis=1, keepdims=True)
+
+
+def normalize(array):
+    array = (array - X_avg) / (X_max - X_min)
+    return array
+
+
+X_tot = normalize(X_tot)
+X_train = normalize(X_train)
+X_test = normalize(X_test)
+X_final = normalize(X_final)
 
 # Training Linear Regression Using SkLearn
-clf = sklearn.linear_model.LogisticRegressionCV(max_iter=10000)
-clf.fit(X_tot.T, Y_tot.T)
+# clf = sklearn.linear_model.LogisticRegressionCV(max_iter=10000)
+clf = RandomForestClassifier()
+clf.fit(X_train.T, Y_train.T)
 
 # Training Set Accuracy
 predict_train = clf.predict(X_train.T)

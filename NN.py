@@ -8,7 +8,7 @@ raw_d1.dropna(axis=0, how='any', inplace=True)
 
 # Reading Test Case Set Data File
 raw_d2 = pd.read_csv('Data/xtest.csv')
-raw_d1.dropna(axis=0, how='any', inplace=True)
+raw_d2.dropna(axis=0, how='any', inplace=True)
 
 # Convert Data to ndArrays
 train_data = np.array(raw_d1)
@@ -38,7 +38,7 @@ def process_data(array):
         elif array[i][16] is False:
             array[i][16] = 0
 
-    array = np.array(list(array), dtype=np.float)
+    array = np.array(array, dtype=np.float)
     return array
 
 
@@ -69,12 +69,21 @@ m_final = X_final[1]
 
 # Normalizing Data
 X_norm = np.linalg.norm(X_tot, axis=1, keepdims=True)
-X_tot = X_tot / X_norm
-X_train = X_train / X_norm
-X_test = X_test / X_norm
-X_final = X_final / X_norm
+X_avg = np.mean(X_tot, axis=1, keepdims=True)
+X_std = np.std(X_tot, axis=1, keepdims=True)
+X_max = np.max(X_tot, axis=1, keepdims=True)
+X_min = np.min(X_tot, axis=1, keepdims=True)
 
-# print(X_train.shape, X_test.shape, X_final.shape, Y_train.shape, Y_test.shape)
+
+def normalize(array):
+    array = (array - X_avg) / X_std
+    return array
+
+
+X_tot = normalize(X_tot)
+X_train = normalize(X_train)
+X_test = normalize(X_test)
+X_final = normalize(X_final)
 
 
 def sigmoid(z):
@@ -131,20 +140,23 @@ def forward_propagation(X, parameters):
     return A2, cache
 
 
-def compute_cost(A2, Y, parameters):
+def compute_cost(A2, Y, parameters, lambd):
     """Computes Logistic Cost"""
     m = Y.shape[1]  # number of example
+    W1 = parameters["W1"]
+    W2 = parameters["W2"]
 
     log_prob = np.log(A2) * Y + np.log(1 - A2) * (1 - Y)
     cost = - np.sum(log_prob) / m
 
     cost = float(np.squeeze(cost))  # makes sure cost is the dimension we expect.
     assert (isinstance(cost, float))
+    reg_cost = lambd * (np.sum(np.square(W1)) + np.sum(np.square(W2))) / (2 * m)
 
-    return cost
+    return cost + reg_cost
 
 
-def backward_propagation(parameters, cache, X, Y):
+def backward_propagation(parameters, cache, X, Y, lambd):
     """Back Propagation to Compute Derivatives"""
     m = X.shape[1]
 
@@ -155,10 +167,10 @@ def backward_propagation(parameters, cache, X, Y):
     A2 = cache["A2"]
 
     dZ2 = A2 - Y
-    dW2 = (1 / m) * np.dot(dZ2, A1.T)
+    dW2 = (1 / m) * np.dot(dZ2, A1.T) + (lambd * W2) / m
     db2 = (1 / m) * np.sum(dZ2, axis=1, keepdims=True)
     dZ1 = np.dot(W2.T, dZ2) * (1 - np.power(A1, 2))
-    dW1 = (1 / m) * np.dot(dZ1, X.T)
+    dW1 = (1 / m) * np.dot(dZ1, X.T) + (lambd * W1) / m
     db1 = (1 / m) * np.sum(dZ1, axis=1, keepdims=True)
 
     grads = {"dW1": dW1,
@@ -192,7 +204,7 @@ def update_parameters(parameters, grads, learning_rate=1.2):
     return parameters
 
 
-def nn_model(X, Y, n_h, num_iterations=10000, learning_rate=1.2, print_cost=False):
+def nn_model(X, Y, n_h, num_iterations=10000, learning_rate=1.2, lambd=0.0, print_cost=False):
     """Neural Network Model That Combines Each Step"""
 
     np.random.seed(3)
@@ -200,6 +212,7 @@ def nn_model(X, Y, n_h, num_iterations=10000, learning_rate=1.2, print_cost=Fals
     n_y = layer_sizes(X, Y)[2]
 
     parameters = initialize_parameters(n_x, n_h, n_y)
+    costs = []
 
     # Gradient Descent
     for i in range(0, num_iterations):
@@ -207,19 +220,22 @@ def nn_model(X, Y, n_h, num_iterations=10000, learning_rate=1.2, print_cost=Fals
         A2, cache = forward_propagation(X, parameters)
 
         # Cost function. Inputs: "A2, Y, parameters". Outputs: "cost".
-        cost = compute_cost(A2, Y, parameters)
+        cost = compute_cost(A2, Y, parameters, lambd)
 
         # Back propagation. Inputs: "parameters, cache, X, Y". Outputs: "grads".
-        grads = backward_propagation(parameters, cache, X, Y)
+        grads = backward_propagation(parameters, cache, X, Y, lambd)
 
         # Gradient descent parameter update. Inputs: "parameters, grads". Outputs: "parameters".
         parameters = update_parameters(parameters, grads, learning_rate)
+
+        if i % 100 == 0:
+            costs.append(cost)
 
         # Print the cost every 1000 iterations
         if print_cost and i % 1000 == 0:
             print("Cost after iteration %i: %f" % (i, cost))
 
-    return parameters
+    return parameters, costs
 
 
 def predict(parameters, X):
@@ -232,20 +248,44 @@ def predict(parameters, X):
     return predictions
 
 
-params = nn_model(X_train, Y_train, n_h=4, num_iterations=10000, learning_rate=4, print_cost=True)
+def compute_metrics(y, predict_y):
+    TP = np.sum(np.logical_and(predict_y == 1, y == 1))
+    TN = np.sum(np.logical_and(predict_y == 0, y == 0))
+    FP = np.sum(np.logical_and(predict_y == 1, y == 0))
+    FN = np.sum(np.logical_and(predict_y == 0, y == 1))
+
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+    accuracy = (TP + TN) * 100.0 / (TP + TN + FP + FN)
+    f_score = (2 * precision * recall) * 100.0 / (precision + recall)
+
+    metrics = {"Accuracy %": round(accuracy, 5),
+               "F_score %": round(f_score, 5),
+               "Precision": round(precision, 5),
+               "Recall": round(recall, 5)}
+    return metrics
+
+
+params, cost_table = nn_model(X_train, Y_train, n_h=4, num_iterations=10000, learning_rate=4, lambd=0, print_cost=True)
 
 # Training Set Accuracy
 predict_train = predict(params, X_train)
-print('Accuracy: %d' % float(
-    (np.dot(Y_train, predict_train.T) + np.dot(1 - Y_train, 1 - predict_train.T)) / float(Y_train.size) * 100) + '%')
+m1 = compute_metrics(Y_train, predict_train)
+print('Training Set : ', m1)
 
 # Test Set Accuracy
 predict_test = predict(params, X_test)
-print('Accuracy: %d' % float(
-    (np.dot(Y_test, predict_test.T) + np.dot(1 - Y_test, 1 - predict_test.T)) / float(Y_test.size) * 100) + '%')
+m2 = compute_metrics(Y_test, predict_test)
+print('Test Set : ', m2)
+
+# Total Set Accuracy
+predict_tot = predict(params, X_tot)
+m3 = compute_metrics(Y_tot, predict_tot)
+print('Total Set : ', m3)
 
 # Test Cases Prediction
 predict_final = predict(params, X_final)
+print(np.count_nonzero(predict_final))
 
 # Upload to File
 df = pd.DataFrame(predict_final.T, dtype=int)
@@ -253,25 +293,25 @@ df.index += 1
 df.to_csv('Data/Predict_nn.csv', sep=',', encoding='utf-8', header=['Revenue'], index_label='ID')
 
 
-# def learning_rate_check():
-#     """ For Choosing the Correct Learning Rate """
-#     learning_rates = [0.01, 0.001, 0.0001]
-#     models = {}
-#     for i in learning_rates:
-#         print("learning rate is: " + str(i))
-#         models[str(i)] = nn_model(X_train, Y_train, n_h=5, num_iterations=1500, learning_rate=i, print_cost=False)
-#         print('\n' + "-------------------------------------------------------" + '\n')
-#
-#     for i in learning_rates:
-#         plt.plot(np.squeeze(models[str(i)]["costs"]), label=str(models[str(i)]["learning_rate"]))
-#
-#     plt.ylabel('cost')
-#     plt.xlabel('iterations (hundreds)')
-#
-#     legend = plt.legend(loc='upper center', shadow=True)
-#     frame = legend.get_frame()
-#     frame.set_facecolor('0.90')
-#     plt.show()
+def learning_rate_check():
+    """ For Choosing the Correct Learning Rate """
+    learning_rates = [4, 1, 0.1]
+    models = {}
+    for i in learning_rates:
+        print("learning rate is: " + str(i))
+        p, models[str(i)] = nn_model(X_train, Y_train, n_h=5, num_iterations=1500, learning_rate=i, print_cost=False)
+        print('\n' + "-------------------------------------------------------" + '\n')
+
+    for i in learning_rates:
+        plt.plot(np.squeeze(models[str(i)]), label=str(i))
+
+    plt.ylabel('cost')
+    plt.xlabel('iterations (hundreds)')
+
+    legend = plt.legend(loc='upper center', shadow=True)
+    frame = legend.get_frame()
+    frame.set_facecolor('0.90')
+    plt.show()
 
 
-# learning_rate_check()
+learning_rate_check()
