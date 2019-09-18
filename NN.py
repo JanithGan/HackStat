@@ -27,16 +27,16 @@ def process_data(array):
         array[i][10] = months.index(mon)
 
         if array[i][15] == 'Returning_Visitor':  # Assign Values for Visitor Types
-            array[i][15] = 2
+            array[i][15] = 3
         elif array[i][15] == 'New_Visitor':
-            array[i][15] = 1
+            array[i][15] = 2
         elif array[i][15] == 'Other':
-            array[i][15] = 0
+            array[i][15] = 1
 
         if array[i][16] is True:  # Assign Values for Booleans
-            array[i][16] = 1
+            array[i][16] = 2
         elif array[i][16] is False:
-            array[i][16] = 0
+            array[i][16] = 1
 
     array = np.array(array, dtype=np.float)
     return array
@@ -68,11 +68,12 @@ X_final = test.T
 m_final = X_final[1]
 
 # Normalizing Data
-X_norm = np.linalg.norm(X_tot, axis=1, keepdims=True)
-X_avg = np.mean(X_tot, axis=1, keepdims=True)
-X_std = np.std(X_tot, axis=1, keepdims=True)
-X_max = np.max(X_tot, axis=1, keepdims=True)
-X_min = np.min(X_tot, axis=1, keepdims=True)
+X = np.concatenate((X_tot, X_final), axis=1)
+X_norm = np.linalg.norm(X, axis=1, keepdims=True)
+X_avg = np.mean(X, axis=1, keepdims=True)
+X_std = np.std(X, axis=1, keepdims=True)
+X_max = np.max(X, axis=1, keepdims=True)
+X_min = np.min(X, axis=1, keepdims=True)
 
 
 def normalize(array):
@@ -288,7 +289,7 @@ def compute_metrics(y, predict_y):
 
 
 # Training the Model
-out = nn_model(X_train, Y_train, n_h=8, num_iterations=10000, learning_rate=4, lambd=0, print_cost=True)
+out = nn_model(X_train, Y_train, n_h=10, num_iterations=10000, learning_rate=4, lambd=0, print_cost=True)
 
 # Predicting Values
 predict_train = predict(out["params"], X_train)
@@ -405,7 +406,6 @@ def lambda_check():
     frame = legend.get_frame()
     frame.set_facecolor('0.90')
     plt.show()
-
 
 # plot_learning_curves(n_h=8)
 # plot_cost_curves()

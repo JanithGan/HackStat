@@ -25,21 +25,22 @@ def process_data(array):
         mon = array[i][10]  # Assign Values for Months
         if mon not in months:
             months.append(mon)
-        array[i][10] = months.index(mon)
+        array[i][10] = months.index(mon) + 1
 
         if array[i][15] == 'Returning_Visitor':  # Assign Values for Visitor Types
-            array[i][15] = 2
+            array[i][15] = 3
         elif array[i][15] == 'New_Visitor':
-            array[i][15] = 1
+            array[i][15] = 2
         elif array[i][15] == 'Other':
-            array[i][15] = 0
+            array[i][15] = 1
 
         if array[i][16] is True:  # Assign Values for Booleans
-            array[i][16] = 1
+            array[i][16] = 2
         elif array[i][16] is False:
-            array[i][16] = 0
-
+            array[i][16] = 1
+    # array = np.delete(array, [10, 15, 16], 1)
     array = np.array(array, dtype=np.float)
+
     return array
 
 
@@ -69,11 +70,12 @@ X_final = test.T
 m_final = X_final[1]
 
 # Normalizing Data
-X_norm = np.linalg.norm(X_tot, axis=1, keepdims=True)
-X_avg = np.mean(X_tot, axis=1, keepdims=True)
-X_std = np.std(X_tot, axis=1, keepdims=True)
-X_max = np.max(X_tot, axis=1, keepdims=True)
-X_min = np.min(X_tot, axis=1, keepdims=True)
+X = np.concatenate((X_tot, X_final), axis=1)
+X_norm = np.linalg.norm(X, axis=1, keepdims=True)
+X_avg = np.mean(X, axis=1, keepdims=True)
+X_std = np.std(X, axis=1, keepdims=True)
+X_max = np.max(X, axis=1, keepdims=True)
+X_min = np.min(X, axis=1, keepdims=True)
 
 
 def normalize(array):
@@ -88,9 +90,8 @@ X_test = normalize(X_test)
 X_final = normalize(X_final)
 
 
-# GRADED FUNCTION: n_layer_model
-
-def L_layer_model(X, Y, layers_dims, learning_rate=0.0075, num_iterations=3000, print_cost=False):  # lr was 0.009
+def L_layer_model(X, Y, layers_dims, learning_rate=0.0075, lambd=0.0, num_iterations=3000, print_cost=False):
+    # lr was 0.009
     """Implements a L-layer neural network: [LINEAR->RELU]*(L-1)->LINEAR->SIGMOID."""
 
     costs = []  # keep track of cost
@@ -104,16 +105,16 @@ def L_layer_model(X, Y, layers_dims, learning_rate=0.0075, num_iterations=3000, 
         AL, caches = L_model_forward(X, parameters)
 
         # Compute cost.
-        cost = compute_cost(AL, Y)
+        cost = compute_cost(AL, Y, layers_dims, parameters, lambd)
 
         # Backward propagation.
-        grads = L_model_backward(AL, Y, caches)
+        grads = L_model_backward(AL, Y, caches, lambd)
 
         # Update parameters.
         parameters = update_parameters(parameters, grads, learning_rate)
 
         # Print the cost every 100 training example
-        if print_cost and i % 100 == 0:
+        if print_cost and i % 1000 == 0:
             print("Cost after iteration %i: %f" % (i, cost))
         if print_cost and i % 100 == 0:
             costs.append(cost)
@@ -126,14 +127,6 @@ def L_layer_model(X, Y, layers_dims, learning_rate=0.0075, num_iterations=3000, 
     plt.show()
 
     return parameters
-
-
-layers_dims = [17, 8, 4, 1]
-
-# Training the Model
-params = L_layer_model(X_train, Y_train, layers_dims, num_iterations=10000, learning_rate=1, print_cost=True)
-pred_train = predict(X_train, Y_train, params)
-pred_test = predict(X_test, Y_test, params)
 
 
 def compute_metrics(y, predict_y):
@@ -152,3 +145,32 @@ def compute_metrics(y, predict_y):
                "Precision": round(precision, 5),
                "Recall": round(recall, 5)}
     return metrics
+
+
+# Define Size for Each Layer - Change This
+dims = [17, 10, 10, 10, 1]
+
+# Training the Model - Change This
+params = L_layer_model(X_train, Y_train, dims, num_iterations=5000, lambd=20, learning_rate=2, print_cost=True)
+
+predict_train = predict(X_train, params)
+predict_test = predict(X_test, params)
+predict_tot = predict(X_tot, params)
+predict_final = predict(X_final, params)
+
+# Training Set Accuracy
+m1 = compute_metrics(Y_train, predict_train)
+print('Training Set : ', m1)
+
+# Test Set Accuracy
+m2 = compute_metrics(Y_test, predict_test)
+print('Test Set : ', m2)
+
+# Total Set Accuracy
+m3 = compute_metrics(Y_tot, predict_tot)
+print('Total Set : ', m3)
+
+# Upload to File
+df = pd.DataFrame(predict_final.T, dtype=int)
+df.index += 1
+df.to_csv('Data/Predict_dnn.csv', sep=',', encoding='utf-8', header=['Revenue'], index_label='ID')
