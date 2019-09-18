@@ -51,7 +51,7 @@ X_tot = data[:, :-1].T
 m_tot = X_tot.shape[1]
 Y_tot = data[:, -1].reshape(1, m_tot)
 
-div_const = 7500
+div_const = 7500  # 500 Multiples Only
 
 # Training Set Data
 X_train = data[:div_const, :-1].T
@@ -76,6 +76,7 @@ X_min = np.min(X_tot, axis=1, keepdims=True)
 
 
 def normalize(array):
+    """Normalizes Data"""
     array = (array - X_avg) / X_std
     return array
 
@@ -87,7 +88,7 @@ X_final = normalize(X_final)
 
 
 def sigmoid(z):
-    """ComputeS the sigmoid of z """
+    """Computes the sigmoid of z"""
     s = 1 / (1 + np.exp(-z))
     return s
 
@@ -204,7 +205,7 @@ def update_parameters(parameters, grads, learning_rate=1.2):
     return parameters
 
 
-def nn_model(X, Y, n_h, num_iterations=10000, learning_rate=1.2, lambd=0.0, print_cost=False):
+def nn_model(X, Y, n_h, X_t=None, Y_t=None, num_iterations=10000, learning_rate=4, lambd=0.0, print_cost=False):
     """Neural Network Model That Combines Each Step"""
 
     np.random.seed(3)
@@ -213,6 +214,7 @@ def nn_model(X, Y, n_h, num_iterations=10000, learning_rate=1.2, lambd=0.0, prin
 
     parameters = initialize_parameters(n_x, n_h, n_y)
     costs = []
+    train_cost = []
 
     # Gradient Descent
     for i in range(0, num_iterations):
@@ -230,12 +232,20 @@ def nn_model(X, Y, n_h, num_iterations=10000, learning_rate=1.2, lambd=0.0, prin
 
         if i % 100 == 0:
             costs.append(cost)
+            if not (X_t is None or Y_t is None):
+                pre = predict(parameters, X_t)
+                t_cost = compute_cost(pre["A2"], Y_t, parameters, lambd)
+                train_cost.append(t_cost)
 
         # Print the cost every 1000 iterations
         if print_cost and i % 1000 == 0:
             print("Cost after iteration %i: %f" % (i, cost))
 
-    return parameters, costs
+    d = {"params": parameters,
+         "costs": costs,
+         "t_costs": train_cost}
+
+    return d
 
 
 def predict(parameters, X):
@@ -245,7 +255,10 @@ def predict(parameters, X):
     A2, cache = forward_propagation(X, parameters)
     predictions = X_new = (A2 >= 0.5)
 
-    return predictions
+    d = {"P": predictions,
+         "A2": A2}
+
+    return d
 
 
 def compute_metrics(y, predict_y):
@@ -266,47 +279,94 @@ def compute_metrics(y, predict_y):
     return metrics
 
 
-params, cost_table = nn_model(X_train, Y_train, n_h=4, num_iterations=10000, learning_rate=4, lambd=0, print_cost=True)
+# Training the Model
+out = nn_model(X_train, Y_train, n_h=4, num_iterations=10000, learning_rate=4, lambd=0, print_cost=True)
+
+# Predicting Values
+predict_train = predict(out["params"], X_train)
+predict_test = predict(out["params"], X_test)
+predict_tot = predict(out["params"], X_tot)
+predict_final = predict(out["params"], X_final)
 
 # Training Set Accuracy
-predict_train = predict(params, X_train)
-m1 = compute_metrics(Y_train, predict_train)
+m1 = compute_metrics(Y_train, predict_train["P"])
 print('Training Set : ', m1)
 
 # Test Set Accuracy
-predict_test = predict(params, X_test)
-m2 = compute_metrics(Y_test, predict_test)
+m2 = compute_metrics(Y_test, predict_test["P"])
 print('Test Set : ', m2)
 
 # Total Set Accuracy
-predict_tot = predict(params, X_tot)
-m3 = compute_metrics(Y_tot, predict_tot)
+m3 = compute_metrics(Y_tot, predict_tot["P"])
 print('Total Set : ', m3)
 
 # Test Cases Prediction
-predict_final = predict(params, X_final)
-print(np.count_nonzero(predict_final))
+predict_f = predict_final["P"]
+print(np.count_nonzero(predict_f))
 
 # Upload to File
-df = pd.DataFrame(predict_final.T, dtype=int)
+df = pd.DataFrame(predict_f.T, dtype=int)
 df.index += 1
 df.to_csv('Data/Predict_nn.csv', sep=',', encoding='utf-8', header=['Revenue'], index_label='ID')
+
+
+# Curve Plotting
+def plot_curves(n_h=5, n_i=10000, l_r=4, lambd=0.0):
+    D = nn_model(X_train, Y_train, n_h=n_h, X_t=X_test, Y_t=Y_test, num_iterations=n_i, learning_rate=l_r, lambd=lambd,
+                 print_cost=False)
+    print("Plotting Cost Curve... ")
+
+    plt.plot(np.squeeze(D["costs"][1:]), label="Train")
+    plt.plot(np.squeeze(D["t_costs"][1:]), label="Test")
+
+    plt.ylabel('Cost')
+    plt.xlabel('Iterations (hundreds)')
+    plt.title('Curve for Cost vs Iterations')
+
+    legend = plt.legend(loc='upper right', shadow=True)
+    frame = legend.get_frame()
+    frame.set_facecolor('0.90')
+    plt.show()
+
+
+def plot_learning_curves(n_h=5, n_i=1500, l_r=4, lambd=0.0):
+    cost1, cost2 = [], []
+    nums = list(range(500, div_const + 500, 500))
+    print("Plotting Learning Curves... ")
+    for m in nums:
+        D = nn_model(X_train[:, :m], Y_train[:, :m], n_h=n_h, X_t=X_test, Y_t=Y_test, num_iterations=n_i,
+                     learning_rate=l_r, lambd=lambd, print_cost=False)
+        cost1.append(D["costs"][-1])
+        cost2.append(D["t_costs"][-1])
+
+    plt.plot(nums, cost1, label="Train")
+    plt.plot(nums, cost2, label="Test")
+
+    plt.ylabel('Cost')
+    plt.xlabel('Training Set Size')
+    plt.title('Learning Curves')
+
+    legend = plt.legend(loc='upper right', shadow=True)
+    frame = legend.get_frame()
+    frame.set_facecolor('0.90')
+    plt.show()
 
 
 def learning_rate_check():
     """ For Choosing the Correct Learning Rate """
     learning_rates = [4, 1, 0.1]
     models = {}
+    print("Plotting Learning Rate vs Cost ... ")
     for i in learning_rates:
-        print("learning rate is: " + str(i))
-        p, models[str(i)] = nn_model(X_train, Y_train, n_h=5, num_iterations=1500, learning_rate=i, print_cost=False)
-        print('\n' + "-------------------------------------------------------" + '\n')
+        D = nn_model(X_train, Y_train, n_h=5, num_iterations=1500, learning_rate=i, lambd=0.0, print_cost=False)
+        models[str(i)] = D["costs"]
 
     for i in learning_rates:
-        plt.plot(np.squeeze(models[str(i)]), label=str(i))
+        plt.plot(np.squeeze(models[str(i)][1:]), label=str(i))
 
-    plt.ylabel('cost')
-    plt.xlabel('iterations (hundreds)')
+    plt.ylabel('Cost')
+    plt.xlabel('Iterations (hundreds)')
+    plt.title('Learning Rate Check')
 
     legend = plt.legend(loc='upper center', shadow=True)
     frame = legend.get_frame()
@@ -314,4 +374,29 @@ def learning_rate_check():
     plt.show()
 
 
-learning_rate_check()
+def lambda_check():
+    """ For Choosing the Correct Learning Rate """
+    lambdas = [0, 0.1, 1]
+    models = {}
+    print("Plotting Lambdas vs Cost ... ")
+    for i in lambdas:
+        D = nn_model(X_train, Y_train, n_h=5, num_iterations=1500, learning_rate=4, lambd=i, print_cost=False)
+        models[str(i)] = D["costs"]
+
+    for i in lambdas:
+        plt.plot(np.squeeze(models[str(i)][1:]), label=str(i))
+
+    plt.ylabel('Cost')
+    plt.xlabel('Iterations (hundreds)')
+    plt.title('Lambda Check')
+
+    legend = plt.legend(loc='upper center', shadow=True)
+    frame = legend.get_frame()
+    frame.set_facecolor('0.90')
+    plt.show()
+
+
+plot_learning_curves()
+# plot_curves()
+# learning_rate_check()
+# lambda_check()
