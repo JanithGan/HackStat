@@ -93,6 +93,10 @@ def sigmoid(z):
     return s
 
 
+def ReLU(x):
+    return x * (x > 0)
+
+
 def layer_sizes(X, Y):
     """Computes Layer Sizes of NN"""
     n_x = X.shape[0]  # size of input layer
@@ -128,7 +132,8 @@ def forward_propagation(X, parameters):
     b2 = parameters["b2"]
 
     Z1 = np.dot(W1, X) + b1
-    A1 = np.tanh(Z1)
+    # A1 = np.tanh(Z1)
+    A1 = ReLU(Z1)
     Z2 = np.dot(W2, A1) + b2
     A2 = sigmoid(Z2)
 
@@ -170,7 +175,10 @@ def backward_propagation(parameters, cache, X, Y, lambd):
     dZ2 = A2 - Y
     dW2 = (1 / m) * np.dot(dZ2, A1.T) + (lambd * W2) / m
     db2 = (1 / m) * np.sum(dZ2, axis=1, keepdims=True)
-    dZ1 = np.dot(W2.T, dZ2) * (1 - np.power(A1, 2))
+
+    dA1 = np.dot(W2.T, dZ2)  # For ReLU
+    dZ1 = np.multiply(dA1, np.int64(A1 > 0))
+    # dZ1 = np.dot(W2.T, dZ2) * (1 - np.power(A1, 2))   # For tanh
     dW1 = (1 / m) * np.dot(dZ1, X.T) + (lambd * W1) / m
     db1 = (1 / m) * np.sum(dZ1, axis=1, keepdims=True)
 
@@ -253,7 +261,7 @@ def predict(parameters, X):
 
     # Computes probabilities using forward propagation, and classifies to 0/1 using 0.5 as the threshold.
     A2, cache = forward_propagation(X, parameters)
-    predictions = X_new = (A2 >= 0.5)
+    predictions = (A2 >= 0.5)
 
     d = {"P": predictions,
          "A2": A2}
@@ -280,7 +288,7 @@ def compute_metrics(y, predict_y):
 
 
 # Training the Model
-out = nn_model(X_train, Y_train, n_h=4, num_iterations=10000, learning_rate=4, lambd=0, print_cost=True)
+out = nn_model(X_train, Y_train, n_h=8, num_iterations=10000, learning_rate=4, lambd=0, print_cost=True)
 
 # Predicting Values
 predict_train = predict(out["params"], X_train)
@@ -311,10 +319,36 @@ df.to_csv('Data/Predict_nn.csv', sep=',', encoding='utf-8', header=['Revenue'], 
 
 
 # Curve Plotting
-def plot_curves(n_h=5, n_i=10000, l_r=4, lambd=0.0):
+def plot_learning_curves(n_h=5, n_i=1500, l_r=4, lambd=0.0):
+    """Plots Learning Curves"""
+    cost1, cost2 = [], []
+    nums = list(range(500, div_const + 500, 500))
+    print("Plotting Learning Curves... ")
+    for m in nums:
+        D = nn_model(X_train[:, :m], Y_train[:, :m], n_h=n_h, X_t=X_test, Y_t=Y_test, num_iterations=n_i,
+                     learning_rate=l_r, lambd=lambd, print_cost=False)
+        cost1.append(D["costs"][-1])
+        cost2.append(D["t_costs"][-1])
+
+    z = 1
+    plt.plot(nums[z:], cost1[z:], label="Train")
+    plt.plot(nums[z:], cost2[z:], label="Test")
+
+    plt.ylabel('Cost')
+    plt.xlabel('Training Set Size')
+    plt.title('Learning Curves')
+
+    legend = plt.legend(loc='upper right', shadow=True)
+    frame = legend.get_frame()
+    frame.set_facecolor('0.90')
+    plt.show()
+
+
+def plot_cost_curves(n_h=5, n_i=10000, l_r=4, lambd=0.0):
+    print("Plotting Cost Curve... ")
+
     D = nn_model(X_train, Y_train, n_h=n_h, X_t=X_test, Y_t=Y_test, num_iterations=n_i, learning_rate=l_r, lambd=lambd,
                  print_cost=False)
-    print("Plotting Cost Curve... ")
 
     plt.plot(np.squeeze(D["costs"][1:]), label="Train")
     plt.plot(np.squeeze(D["t_costs"][1:]), label="Test")
@@ -329,31 +363,8 @@ def plot_curves(n_h=5, n_i=10000, l_r=4, lambd=0.0):
     plt.show()
 
 
-def plot_learning_curves(n_h=5, n_i=1500, l_r=4, lambd=0.0):
-    cost1, cost2 = [], []
-    nums = list(range(500, div_const + 500, 500))
-    print("Plotting Learning Curves... ")
-    for m in nums:
-        D = nn_model(X_train[:, :m], Y_train[:, :m], n_h=n_h, X_t=X_test, Y_t=Y_test, num_iterations=n_i,
-                     learning_rate=l_r, lambd=lambd, print_cost=False)
-        cost1.append(D["costs"][-1])
-        cost2.append(D["t_costs"][-1])
-
-    plt.plot(nums, cost1, label="Train")
-    plt.plot(nums, cost2, label="Test")
-
-    plt.ylabel('Cost')
-    plt.xlabel('Training Set Size')
-    plt.title('Learning Curves')
-
-    legend = plt.legend(loc='upper right', shadow=True)
-    frame = legend.get_frame()
-    frame.set_facecolor('0.90')
-    plt.show()
-
-
 def learning_rate_check():
-    """ For Choosing the Correct Learning Rate """
+    """For Choosing the Correct Learning Rate"""
     learning_rates = [4, 1, 0.1]
     models = {}
     print("Plotting Learning Rate vs Cost ... ")
@@ -375,7 +386,7 @@ def learning_rate_check():
 
 
 def lambda_check():
-    """ For Choosing the Correct Learning Rate """
+    """For Choosing the Correct Lambda"""
     lambdas = [0, 0.1, 1]
     models = {}
     print("Plotting Lambdas vs Cost ... ")
@@ -390,13 +401,13 @@ def lambda_check():
     plt.xlabel('Iterations (hundreds)')
     plt.title('Lambda Check')
 
-    legend = plt.legend(loc='upper center', shadow=True)
+    legend = plt.legend(loc='upper right', shadow=True)
     frame = legend.get_frame()
     frame.set_facecolor('0.90')
     plt.show()
 
 
-plot_learning_curves()
-# plot_curves()
+# plot_learning_curves(n_h=8)
+# plot_cost_curves()
 # learning_rate_check()
 # lambda_check()
