@@ -1,5 +1,7 @@
 import numpy as np
 
+# From Andrew Ng's Deep Learning Course
+
 
 def sigmoid(Z):
     """
@@ -395,6 +397,5 @@ def predict(X, parameters):
     # print results
     # print ("predictions: " + str(p))
     # print ("true labels: " + str(y))
-    # print("Accuracy: %s" % str(np.sum(p == y) * 100 / float(m)))
 
     return p

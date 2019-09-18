@@ -1,89 +1,5 @@
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-
-# Reading Train Set Data File
-raw_d1 = pd.read_csv('Data/Trainset.csv')
-raw_d1.dropna(axis=0, how='any', inplace=True)
-
-# Reading Test Case Set Data File
-raw_d2 = pd.read_csv('Data/xtest.csv')
-raw_d1.dropna(axis=0, how='any', inplace=True)
-
-# Convert Data to ndArrays
-train_data = np.array(raw_d1)
-test_data = np.array(raw_d2)[:, 1:]
-
-months = []
-
-
-def process_data(array):
-    """ This function pre-processes raw data"""
-    m_init = array.shape[0]
-    for i in range(m_init):
-        mon = array[i][10]  # Assign Values for Months
-        if mon not in months:
-            months.append(mon)
-        array[i][10] = months.index(mon)
-
-        if array[i][15] == 'Returning_Visitor':  # Assign Values for Visitor Types
-            array[i][15] = 2
-        elif array[i][15] == 'New_Visitor':
-            array[i][15] = 1
-        elif array[i][15] == 'Other':
-            array[i][15] = 0
-
-        if array[i][16] is True:  # Assign Values for Booleans
-            array[i][16] = 1
-        elif array[i][16] is False:
-            array[i][16] = 0
-
-    array = np.array(list(array), dtype=np.float)
-    return array
-
-
-# Processing Data
-data = process_data(train_data)
-test = process_data(test_data)
-
-# Total Data
-X_tot = data[:, :-1].T
-m_tot = X_tot.shape[1]
-Y_tot = data[:, -1].reshape(1, m_tot)
-
-div_const = 7500
-
-# Training Set Data
-X_train = data[:div_const, :-1].T
-m_train = X_train.shape[1]
-Y_train = data[:div_const, -1].reshape(1, m_train)
-
-# Test Set Data
-X_test = data[div_const:, :-1].T
-m_test = X_test.shape[1]
-Y_test = data[div_const:, -1].reshape(1, m_test)
-
-# Test Cases Data
-X_final = test.T
-m_final = X_final[1]
-
-# Normalizing Data
-X_norm = np.linalg.norm(X_tot, axis=1, keepdims=True)
-
-X_avg = np.mean(X_train, axis=1, keepdims=True)
-X_max = np.max(X_train, axis=1, keepdims=True)
-X_min = np.min(X_train, axis=1, keepdims=True)
-
-
-def normalize(array):
-    array = (array - X_avg) / (X_max - X_min)
-    return array
-
-
-X_tot = normalize(X_tot)
-X_train = normalize(X_train)
-X_test = normalize(X_test)
-X_final = normalize(X_final)
+from Data_Process import *
 
 
 def sigmoid(z):
@@ -101,7 +17,6 @@ def initialize_with_zeros(dim):
     return w, b
 
 
-# noinspection PyPep8Naming
 def propagate(w, b, X, Y):
     """ Implement the cost function and its gradient for the propagation explained above """
     m = X.shape[1]
@@ -124,7 +39,6 @@ def propagate(w, b, X, Y):
     return grads, cost
 
 
-# noinspection PyPep8Naming
 def optimize(w, b, X, Y, num_iterations, learning_rate, print_cost=False):
     """ This function optimizes w and b by running a gradient descent algorithm """
     costs = []
@@ -158,7 +72,6 @@ def optimize(w, b, X, Y, num_iterations, learning_rate, print_cost=False):
     return params, grads, costs
 
 
-# noinspection PyPep8Naming
 def predict(w, b, X):
     """ Predict whether the label is 0 or 1 using learned logistic regression parameters (w, b) """
     m = X.shape[1]

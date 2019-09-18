@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from Deep_Utils import *
 
 # Reading Train Set Data File
 raw_d1 = pd.read_csv('Data/Trainset.csv')
@@ -70,12 +68,12 @@ X_final = test.T
 m_final = X_final[1]
 
 # Normalizing Data
-X = np.concatenate((X_tot, X_final), axis=1)
-X_norm = np.linalg.norm(X, axis=1, keepdims=True)
-X_avg = np.mean(X, axis=1, keepdims=True)
-X_std = np.std(X, axis=1, keepdims=True)
-X_max = np.max(X, axis=1, keepdims=True)
-X_min = np.min(X, axis=1, keepdims=True)
+X_Pro = np.concatenate((X_tot, X_final), axis=1)
+X_norm = np.linalg.norm(X_Pro, axis=1, keepdims=True)
+X_avg = np.mean(X_Pro, axis=1, keepdims=True)
+X_std = np.std(X_Pro, axis=1, keepdims=True)
+X_max = np.max(X_Pro, axis=1, keepdims=True)
+X_min = np.min(X_Pro, axis=1, keepdims=True)
 
 
 def normalize(array):
@@ -90,43 +88,15 @@ X_test = normalize(X_test)
 X_final = normalize(X_final)
 
 
-def L_layer_model(X, Y, layers_dims, learning_rate=0.0075, lambd=0.0, num_iterations=3000, print_cost=False):
-    # lr was 0.009
-    """Implements a L-layer neural network: [LINEAR->RELU]*(L-1)->LINEAR->SIGMOID."""
-
-    costs = []  # keep track of cost
-
-    # Parameters initialization.
-    parameters = initialize_parameters_deep(layers_dims)
-
-    # Loop (gradient descent)
-    for i in range(0, num_iterations):
-        # Forward propagation: [LINEAR -> RELU]*(L-1) -> LINEAR -> SIGMOID.
-        AL, caches = L_model_forward(X, parameters)
-
-        # Compute cost.
-        cost = compute_cost(AL, Y, layers_dims, parameters, lambd)
-
-        # Backward propagation.
-        grads = L_model_backward(AL, Y, caches, lambd)
-
-        # Update parameters.
-        parameters = update_parameters(parameters, grads, learning_rate)
-
-        # Print the cost every 100 training example
-        if print_cost and i % 1000 == 0:
-            print("Cost after iteration %i: %f" % (i, cost))
-        if print_cost and i % 100 == 0:
-            costs.append(cost)
-
-    # plot the cost
-    plt.plot(np.squeeze(costs))
-    plt.ylabel('cost')
-    plt.xlabel('iterations (per tens)')
-    plt.title("Learning rate =" + str(learning_rate))
-    plt.show()
-
-    return parameters
+def get_data():
+    d = {"X_tot": X_tot,
+         "X_train": X_train,
+         "X_test": X_test,
+         "X_final": X_final,
+         "Y_tot": Y_tot,
+         "Y_train": Y_train,
+         "Y_test": Y_test}
+    return d
 
 
 def compute_metrics(y, predict_y):
@@ -145,32 +115,3 @@ def compute_metrics(y, predict_y):
                "Precision": round(precision, 5),
                "Recall": round(recall, 5)}
     return metrics
-
-
-# Define Size for Each Layer - Change This
-dims = [17, 10, 10, 10, 1]
-
-# Training the Model - Change This
-params = L_layer_model(X_train, Y_train, dims, num_iterations=5000, lambd=20, learning_rate=2, print_cost=True)
-
-predict_train = predict(X_train, params)
-predict_test = predict(X_test, params)
-predict_tot = predict(X_tot, params)
-predict_final = predict(X_final, params)
-
-# Training Set Accuracy
-m1 = compute_metrics(Y_train, predict_train)
-print('Training Set : ', m1)
-
-# Test Set Accuracy
-m2 = compute_metrics(Y_test, predict_test)
-print('Test Set : ', m2)
-
-# Total Set Accuracy
-m3 = compute_metrics(Y_tot, predict_tot)
-print('Total Set : ', m3)
-
-# Upload to File
-df = pd.DataFrame(predict_final.T, dtype=int)
-df.index += 1
-df.to_csv('Data/Predict_dnn.csv', sep=',', encoding='utf-8', header=['Revenue'], index_label='ID')
