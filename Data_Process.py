@@ -11,9 +11,11 @@ raw_d2.dropna(axis=0, how='any', inplace=True)
 
 # Convert Data to ndArrays
 train_data = np.array(raw_d1)
+np.random.shuffle(train_data)
 test_data = np.array(raw_d2)[:, 1:]
 
-months = []
+months = list(np.unique(np.concatenate((train_data[:, 10], test_data[:, 10]), axis=0)))
+months.sort()
 
 
 def process_data(array):
@@ -21,21 +23,19 @@ def process_data(array):
     m_init = array.shape[0]
     for i in range(m_init):
         mon = array[i][10]  # Assign Values for Months
-        if mon not in months:
-            months.append(mon)
         array[i][10] = months.index(mon) + 1
 
         if array[i][15] == 'Returning_Visitor':  # Assign Values for Visitor Types
-            array[i][15] = 3
+            array[i][15] = 0
         elif array[i][15] == 'New_Visitor':
-            array[i][15] = 2
-        elif array[i][15] == 'Other':
             array[i][15] = 1
+        elif array[i][15] == 'Other':
+            array[i][15] = -1
 
         if array[i][16] is True:  # Assign Values for Booleans
-            array[i][16] = 2
-        elif array[i][16] is False:
             array[i][16] = 1
+        elif array[i][16] is False:
+            array[i][16] = 0
     # array = np.delete(array, [10, 15, 16], 1)
     array = np.array(array, dtype=np.float)
 
@@ -69,23 +69,35 @@ m_final = X_final[1]
 
 # Normalizing Data
 X_Pro = np.concatenate((X_tot, X_final), axis=1)
-X_norm = np.linalg.norm(X_Pro, axis=1, keepdims=True)
-X_avg = np.mean(X_Pro, axis=1, keepdims=True)
-X_std = np.std(X_Pro, axis=1, keepdims=True)
-X_max = np.max(X_Pro, axis=1, keepdims=True)
-X_min = np.min(X_Pro, axis=1, keepdims=True)
+X_norm = np.linalg.norm(X_train, axis=1, keepdims=True)
+X_avg = np.mean(X_train, axis=1, keepdims=True)
+X_std = np.std(X_train, axis=1, keepdims=True)
+X_max = np.max(X_train, axis=1, keepdims=True)
+X_min = np.min(X_train, axis=1, keepdims=True)
 
 
 def normalize(array):
     """Normalizes Data"""
-    array = (array - X_avg) / X_std
-    return array
+    array = (array - X_avg) / (X_max - X_min)
 
 
-X_tot = normalize(X_tot)
-X_train = normalize(X_train)
-X_test = normalize(X_test)
-X_final = normalize(X_final)
+row_list = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+
+
+def normalize_rows(array):
+    for i in row_list:
+        array[i] = (array[i] - X_avg[i]) / X_std[i]
+
+
+normalize_rows(X_tot)
+normalize_rows(X_train)
+normalize_rows(X_test)
+normalize_rows(X_final)
+
+# normalize(X_tot)
+# normalize(X_train)
+# normalize(X_test)
+# normalize(X_final)
 
 
 def get_data():

@@ -1,5 +1,6 @@
 import numpy as np
 
+
 # From Andrew Ng's Deep Learning Course
 
 
@@ -127,8 +128,8 @@ def initialize_parameters_deep(layer_dims):
     L = len(layer_dims)  # number of layers in the network
 
     for l in range(1, L):
-        parameters['W' + str(l)] = np.random.randn(layer_dims[l], layer_dims[l - 1]) / np.sqrt(
-            layer_dims[l - 1])  # *0.01
+        parameters['W' + str(l)] = np.random.randn(layer_dims[l],
+                                                   layer_dims[l - 1]) / np.sqrt(layer_dims[l - 1])  # *0.01
         parameters['b' + str(l)] = np.zeros((layer_dims[l], 1))
 
         assert (parameters['W' + str(l)].shape == (layer_dims[l], layer_dims[l - 1]))
@@ -393,9 +394,5 @@ def predict(X, parameters):
             p[0, i] = 1
         else:
             p[0, i] = 0
-
-    # print results
-    # print ("predictions: " + str(p))
-    # print ("true labels: " + str(y))
 
     return p

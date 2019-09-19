@@ -42,10 +42,10 @@ def L_layer_model(X, Y, layers_dims, learning_rate=0.0075, lambd=0.0, num_iterat
 
 
 # Define Size for Each Layer - Change This
-dims = [17, 8, 5, 1]
+dims = [17, 10, 5, 1]
 
 # Training the Model - Change This
-params = L_layer_model(X_train, Y_train, dims, num_iterations=5000, lambd=4, learning_rate=1, print_cost=True)
+params = L_layer_model(X_train, Y_train, dims, num_iterations=5000, lambd=0, learning_rate=3, print_cost=True)
 
 predict_train = predict(X_train, params)
 predict_test = predict(X_test, params)

@@ -1,7 +1,9 @@
 from sklearn.linear_model import LogisticRegressionCV
 from sklearn.naive_bayes import *
 from sklearn.ensemble import RandomForestClassifier
-from Data_Process import *
+from sklearn.metrics import *
+from sklearn.neural_network import MLPClassifier
+from Data import *
 
 # Training Classifiers Using SkLearn
 # ----------------------------------
@@ -11,7 +13,10 @@ from Data_Process import *
 # clf = ComplementNB()
 # clf = MultinomialNB()
 
-clf = RandomForestClassifier(n_estimators=500)
+clf = RandomForestClassifier(n_estimators=300, random_state=0, bootstrap=False)
+# clf = MLPClassifier(solver='lbfgs', alpha=30, random_state=None, activation='tanh', hidden_layer_sizes=(100, 100),
+#                     learning_rate='constant', learning_rate_init=1)
+
 clf.fit(X_train.T, np.squeeze(Y_train.T))
 
 # Prediction
@@ -27,6 +32,7 @@ print('Training Set : ', m1)
 # Test Set Accuracy
 m2 = compute_metrics(Y_test, predict_test)
 print('Test Set : ', m2)
+print('Confusion : ', confusion_matrix(np.squeeze(Y_test), np.squeeze(predict_test)))
 
 # Total Set Accuracy
 m3 = compute_metrics(Y_tot, predict_tot)

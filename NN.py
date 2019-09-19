@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from Data_Process import *
+from Data import *
 
 
 def sigmoid(z):
@@ -47,8 +47,8 @@ def forward_propagation(X, parameters):
     b2 = parameters["b2"]
 
     Z1 = np.dot(W1, X) + b1
-    # A1 = np.tanh(Z1)
-    A1 = ReLU(Z1)
+    A1 = np.tanh(Z1)
+    # A1 = ReLU(Z1)
     Z2 = np.dot(W2, A1) + b2
     A2 = sigmoid(Z2)
 
@@ -63,6 +63,7 @@ def forward_propagation(X, parameters):
 
 def compute_cost(A2, Y, parameters, lambd):
     """Computes Logistic Cost"""
+    epsilon = 0
     m = Y.shape[1]  # number of example
     W1 = parameters["W1"]
     W2 = parameters["W2"]
@@ -91,9 +92,9 @@ def backward_propagation(parameters, cache, X, Y, lambd):
     dW2 = (1 / m) * np.dot(dZ2, A1.T) + (lambd * W2) / m
     db2 = (1 / m) * np.sum(dZ2, axis=1, keepdims=True)
 
-    dA1 = np.dot(W2.T, dZ2)  # For ReLU
-    dZ1 = np.multiply(dA1, np.int64(A1 > 0))
-    # dZ1 = np.dot(W2.T, dZ2) * (1 - np.power(A1, 2))   # For tanh
+    # dA1 = np.dot(W2.T, dZ2)  # For ReLU
+    # dZ1 = np.multiply(dA1, np.int64(A1 > 0))
+    dZ1 = np.dot(W2.T, dZ2) * (1 - np.power(A1, 2))   # For tanh
     dW1 = (1 / m) * np.dot(dZ1, X.T) + (lambd * W1) / m
     db1 = (1 / m) * np.sum(dZ1, axis=1, keepdims=True)
 
@@ -191,7 +192,7 @@ out = nn_model(X_train, Y_train, n_h=10, num_iterations=10000, learning_rate=4, 
 predict_train = predict(out["params"], X_train)
 predict_test = predict(out["params"], X_test)
 predict_tot = predict(out["params"], X_tot)
-predict_final = predict(out["params"], X_final)
+# predict_final = predict(out["params"], X_final)
 
 # Training Set Accuracy
 m1 = compute_metrics(Y_train, predict_train["P"])
@@ -204,15 +205,15 @@ print('Test Set : ', m2)
 # Total Set Accuracy
 m3 = compute_metrics(Y_tot, predict_tot["P"])
 print('Total Set : ', m3)
-
-# Test Cases Prediction
-predict_f = predict_final["P"]
-print(np.count_nonzero(predict_f))
-
-# Upload to File
-df = pd.DataFrame(predict_f.T, dtype=int)
-df.index += 1
-df.to_csv('Data/Predict_nn.csv', sep=',', encoding='utf-8', header=['Revenue'], index_label='ID')
+#
+# # Test Cases Prediction
+# predict_f = predict_final["P"]
+# print(np.count_nonzero(predict_f))
+#
+# # Upload to File
+# df = pd.DataFrame(predict_f.T, dtype=int)
+# df.index += 1
+# df.to_csv('Data/Predict_nn.csv', sep=',', encoding='utf-8', header=['Revenue'], index_label='ID')
 
 
 # Curve Plotting
@@ -304,6 +305,7 @@ def lambda_check():
     frame = legend.get_frame()
     frame.set_facecolor('0.90')
     plt.show()
+
 
 # plot_learning_curves(n_h=8)
 # plot_cost_curves()
