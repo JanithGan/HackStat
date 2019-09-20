@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from sklearn.feature_selection import SelectKBest, f_classif, mutual_info_classif
+from sklearn.feature_selection import chi2
 
 # Reading Train Set Data File
 raw_d1 = pd.read_csv('Data/Trainset.csv')
@@ -26,11 +28,11 @@ def process_data(array):
         array[i][10] = months.index(mon) + 1
 
         if array[i][15] == 'Returning_Visitor':  # Assign Values for Visitor Types
-            array[i][15] = 0
+            array[i][15] = 2
         elif array[i][15] == 'New_Visitor':
             array[i][15] = 1
         elif array[i][15] == 'Other':
-            array[i][15] = -1
+            array[i][15] = 0
 
         if array[i][16] is True:  # Assign Values for Booleans
             array[i][16] = 1
@@ -46,39 +48,50 @@ def process_data(array):
 data = process_data(train_data)
 test = process_data(test_data)
 
-# Total Data
-X_tot = data[:, :-1].T
+# Total Training Data
+X_data = data[:, :-1]
+
+k_model = SelectKBest(mutual_info_classif, k=15)
+k_model.fit(X_data, data[:, -1])
+X_tot = k_model.transform(X_data)
+
+X_tot = X_tot.T
 m_tot = X_tot.shape[1]
 Y_tot = data[:, -1].reshape(1, m_tot)
+print(X_tot.shape)
 
-div_const = 7500  # 500 Multiples Only
+div_const = 9000  # 500 Multiples Only
 
 # Training Set Data
-X_train = data[:div_const, :-1].T
+X_train = X_tot[:, :div_const]
 m_train = X_train.shape[1]
 Y_train = data[:div_const, -1].reshape(1, m_train)
 
 # Test Set Data
-X_test = data[div_const:, :-1].T
+X_test = X_tot[:, div_const:]
 m_test = X_test.shape[1]
 Y_test = data[div_const:, -1].reshape(1, m_test)
 
 # Test Cases Data
-X_final = test.T
+X_final = k_model.transform(test)
+X_final = X_final.T
 m_final = X_final[1]
+
+print(X_final.shape)
 
 # Normalizing Data
 X_Pro = np.concatenate((X_tot, X_final), axis=1)
-X_norm = np.linalg.norm(X_train, axis=1, keepdims=True)
-X_avg = np.mean(X_train, axis=1, keepdims=True)
-X_std = np.std(X_train, axis=1, keepdims=True)
-X_max = np.max(X_train, axis=1, keepdims=True)
-X_min = np.min(X_train, axis=1, keepdims=True)
+X_norm = np.linalg.norm(X_tot, axis=1, keepdims=True)
+X_avg = np.mean(X_tot, axis=1, keepdims=True)
+X_std = np.std(X_tot, axis=1, keepdims=True)
+X_max = np.max(X_tot, axis=1, keepdims=True)
+X_min = np.min(X_tot, axis=1, keepdims=True)
 
 
 def normalize(array):
     """Normalizes Data"""
     array = (array - X_avg) / (X_max - X_min)
+    return array
 
 
 row_list = [0, 1, 2, 3, 4, 5, 6, 7, 8]
@@ -89,26 +102,15 @@ def normalize_rows(array):
         array[i] = (array[i] - X_avg[i]) / X_std[i]
 
 
-normalize_rows(X_tot)
-normalize_rows(X_train)
-normalize_rows(X_test)
-normalize_rows(X_final)
+# normalize_rows(X_tot)
+# normalize_rows(X_train)
+# normalize_rows(X_test)
+# normalize_rows(X_final)
 
-# normalize(X_tot)
-# normalize(X_train)
-# normalize(X_test)
-# normalize(X_final)
-
-
-def get_data():
-    d = {"X_tot": X_tot,
-         "X_train": X_train,
-         "X_test": X_test,
-         "X_final": X_final,
-         "Y_tot": Y_tot,
-         "Y_train": Y_train,
-         "Y_test": Y_test}
-    return d
+# X_tot = normalize(X_tot)
+# X_train = normalize(X_train)
+# X_test = normalize(X_test)
+# X_final = normalize(X_final)
 
 
 def compute_metrics(y, predict_y):

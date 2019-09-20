@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import normalize
 
 # Reading Train Set Data File
 raw_d1 = pd.read_csv('Data/Preprocessed/P_Train.csv')
@@ -37,11 +38,12 @@ m_final = X_final[1]
 print(X_train.shape, X_test.shape, Y_train.shape, Y_test.shape, X_final.shape)
 
 # Normalizing Data
-X_norm = np.linalg.norm(X_tot, axis=1, keepdims=True)
-X_avg = np.mean(X_tot, axis=1, keepdims=True)
-X_std = np.std(X_tot, axis=1, keepdims=True)
-X_max = np.max(X_tot, axis=1, keepdims=True)
-X_min = np.min(X_tot, axis=1, keepdims=True)
+X_Pro = np.concatenate((X_tot, X_final), axis=1)
+X_norm = np.linalg.norm(X_Pro, axis=1, keepdims=True)
+X_avg = np.mean(X_Pro, axis=1, keepdims=True)
+X_std = np.std(X_Pro, axis=1, keepdims=True)
+X_max = np.max(X_Pro, axis=1, keepdims=True)
+X_min = np.min(X_Pro, axis=1, keepdims=True)
 
 
 def normalize(array):
@@ -50,13 +52,14 @@ def normalize(array):
     return array
 
 
-row_list = list(range(14))
+row_list = list(range(X_train.shape[0]))
 
 
-def normalize_rows(array):
-    for i in row_list:
-        array[i] = (array[i] - X_avg[i]) / X_std[i]
-    return array
+# def normalize_rows(array):
+#     for i in row_list:
+#         # array[i] = (array[i] - X_avg[i]) / X_std[i]
+#         array[i] = nz(array[i], norm='l1')
+#     return array
 
 
 # X_tot = normalize_rows(X_tot)
