@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from Data import *
+from Data_Process import *
 
 
 def sigmoid(z):
@@ -177,7 +177,7 @@ def predict(parameters, X):
 
     # Computes probabilities using forward propagation, and classifies to 0/1 using 0.5 as the threshold.
     A2, cache = forward_propagation(X, parameters)
-    predictions = (A2 >= 0.5)
+    predictions = (A2 >= 0.4)
 
     d = {"P": predictions,
          "A2": A2}
@@ -186,13 +186,13 @@ def predict(parameters, X):
 
 
 # Training the Model
-out = nn_model(X_train, Y_train, n_h=10, num_iterations=10000, learning_rate=4, lambd=0, print_cost=True)
+out = nn_model(X_train, Y_train, n_h=8, num_iterations=5000, learning_rate=5, lambd=0, print_cost=True)
 
 # Predicting Values
 predict_train = predict(out["params"], X_train)
 predict_test = predict(out["params"], X_test)
 predict_tot = predict(out["params"], X_tot)
-# predict_final = predict(out["params"], X_final)
+predict_final = predict(out["params"], X_final)
 
 # Training Set Accuracy
 m1 = compute_metrics(Y_train, predict_train["P"])
@@ -205,15 +205,15 @@ print('Test Set : ', m2)
 # Total Set Accuracy
 m3 = compute_metrics(Y_tot, predict_tot["P"])
 print('Total Set : ', m3)
-#
-# # Test Cases Prediction
-# predict_f = predict_final["P"]
-# print(np.count_nonzero(predict_f))
-#
-# # Upload to File
-# df = pd.DataFrame(predict_f.T, dtype=int)
-# df.index += 1
-# df.to_csv('Data/Predict_nn.csv', sep=',', encoding='utf-8', header=['Revenue'], index_label='ID')
+
+# Test Cases Prediction
+predict_f = predict_final["P"]
+print(np.count_nonzero(predict_f))
+
+# Upload to File
+df = pd.DataFrame(predict_f.T, dtype=int)
+df.index += 1
+df.to_csv('Data/Predict_nn.csv', sep=',', encoding='utf-8', header=['Revenue'], index_label='ID')
 
 
 # Curve Plotting

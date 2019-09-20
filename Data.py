@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import normalize
+from sklearn.feature_selection import mutual_info_classif, SelectKBest
 
 # Reading Train Set Data File
 raw_d1 = pd.read_csv('Data/Preprocessed/P_Train.csv')
@@ -14,28 +14,34 @@ data = np.array(raw_d1)
 np.random.shuffle(data)
 test = np.array(raw_d2)
 
-# Total Data
-X_tot = data[:, :-1].T
+# Total Training Data
+X_data = data[:, :-1]
+
+# k_model = SelectKBest(mutual_info_classif, k=20)
+# k_model.fit(X_data, data[:, -1])
+# X_data = k_model.transform(X_data)
+
+X_tot = X_data.T
 m_tot = X_tot.shape[1]
 Y_tot = data[:, -1].reshape(1, m_tot)
+print(X_tot.shape)
 
 div_const = 8500  # 500 Multiples Only
 
 # Training Set Data
-X_train = data[:div_const, :-1].T
+X_train = X_tot[:, :div_const]
 m_train = X_train.shape[1]
 Y_train = data[:div_const, -1].reshape(1, m_train)
 
 # Test Set Data
-X_test = data[div_const:, :-1].T
+X_test = X_tot[:, div_const:]
 m_test = X_test.shape[1]
 Y_test = data[div_const:, -1].reshape(1, m_test)
 
 # Test Cases Data
+# X_final = k_model.transform(test)
 X_final = test.T
 m_final = X_final[1]
-
-print(X_train.shape, X_test.shape, Y_train.shape, Y_test.shape, X_final.shape)
 
 # Normalizing Data
 X_Pro = np.concatenate((X_tot, X_final), axis=1)

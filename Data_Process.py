@@ -46,6 +46,8 @@ def process_data(array):
 
 # Processing Data
 data = process_data(train_data)
+data = data.T
+data = data[:, data[1] != -1].T
 test = process_data(test_data)
 
 # Total Training Data
@@ -54,8 +56,9 @@ X_data = data[:, :-1]
 k_model = SelectKBest(mutual_info_classif, k=15)
 k_model.fit(X_data, data[:, -1])
 X_tot = k_model.transform(X_data)
-
 X_tot = X_tot.T
+
+# X_tot = X_data.T  # Without Feature Removal
 m_tot = X_tot.shape[1]
 Y_tot = data[:, -1].reshape(1, m_tot)
 print(X_tot.shape)
@@ -94,23 +97,24 @@ def normalize(array):
     return array
 
 
-row_list = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+row_list = list(range(9))
 
 
 def normalize_rows(array):
     for i in row_list:
         array[i] = (array[i] - X_avg[i]) / X_std[i]
+    return array
 
 
-# normalize_rows(X_tot)
-# normalize_rows(X_train)
-# normalize_rows(X_test)
-# normalize_rows(X_final)
+# X_tot = normalize_rows(X_tot)
+# X_train = normalize_rows(X_train)
+# X_test = normalize_rows(X_test)
+# X_final = normalize_rows(X_final)
 
-# X_tot = normalize(X_tot)
-# X_train = normalize(X_train)
-# X_test = normalize(X_test)
-# X_final = normalize(X_final)
+X_tot = normalize(X_tot)
+X_train = normalize(X_train)
+X_test = normalize(X_test)
+X_final = normalize(X_final)
 
 
 def compute_metrics(y, predict_y):

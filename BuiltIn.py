@@ -1,13 +1,12 @@
 import matplotlib.pyplot as plt
-
 from sklearn.linear_model import LogisticRegressionCV
-from sklearn.model_selection import ShuffleSplit
 from sklearn.naive_bayes import *
+from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import *
-from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import learning_curve
-from Data_Process import *
+from sklearn.model_selection import ShuffleSplit
+from Data import *
 
 
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None, n_jobs=None, train_sizes=np.linspace(.1, 1.0, 5)):
@@ -97,14 +96,14 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None, n_jobs=None,
 # clf = BernoulliNB()
 # clf = ComplementNB()
 # clf = MultinomialNB()
-#
-clf = RandomForestClassifier(n_estimators=200, random_state=0, min_samples_leaf=1)
-# clf = MLPClassifier(solver='lbfgs', alpha=1, activation='tanh', hidden_layer_sizes=(11, 5, 11))
-cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
+# clf = MLPClassifier(solver='lbfgs', alpha=0.1, activation='tanh', hidden_layer_sizes=(100, 100))
+clf = RandomForestClassifier(n_estimators=150, random_state=0, min_samples_leaf=1)
 
-title = "Learning Curves"
-plot_learning_curve(clf, title, X_tot.T, np.squeeze(Y_tot.T), cv=cv, n_jobs=4)
 clf.fit(X_train.T, np.squeeze(Y_train.T))
+
+# title = "Learning Curves"
+# cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
+# plot_learning_curve(clf, title, X_tot.T, np.squeeze(Y_tot.T), cv=cv, n_jobs=4)
 
 # Prediction
 predict_train = clf.predict(X_train.T)
@@ -119,6 +118,7 @@ print('Training Set : ', m1)
 m2 = compute_metrics(Y_test, predict_test)
 print('Test Set : ', m2)
 print('Confusion : ', confusion_matrix(np.squeeze(Y_test), np.squeeze(predict_test)))
+print('AUC : ', roc_auc_score(np.squeeze(Y_test), np.squeeze(predict_test)))
 
 # Total Set Accuracy
 m3 = compute_metrics(Y_tot, predict_tot)
