@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
+from sklearn.preprocessing import Normalizer
 
 # Reading Train Set Data File
 raw_d1 = pd.read_csv('Data/Preprocessed/P_Train.csv')
@@ -17,9 +18,9 @@ test = np.array(raw_d2)
 # Total Training Data
 X_data = data[:, :-1]
 
-# k_model = SelectKBest(mutual_info_classif, k=20)
-# k_model.fit(X_data, data[:, -1])
-# X_data = k_model.transform(X_data)
+k_model = SelectKBest(mutual_info_classif, k=25)
+k_model.fit(X_data, data[:, -1])
+X_data = k_model.transform(X_data)
 
 X_tot = X_data.T
 m_tot = X_tot.shape[1]
@@ -39,44 +40,20 @@ m_test = X_test.shape[1]
 Y_test = data[div_const:, -1].reshape(1, m_test)
 
 # Test Cases Data
-# X_final = k_model.transform(test)
-X_final = test.T
+X_final = k_model.transform(test).T
+# X_final = test.T
 m_final = X_final[1]
 
 # Normalizing Data
 X_Pro = np.concatenate((X_tot, X_final), axis=1)
-X_norm = np.linalg.norm(X_Pro, axis=1, keepdims=True)
-X_avg = np.mean(X_Pro, axis=1, keepdims=True)
-X_std = np.std(X_Pro, axis=1, keepdims=True)
-X_max = np.max(X_Pro, axis=1, keepdims=True)
-X_min = np.min(X_Pro, axis=1, keepdims=True)
 
+normalize = Normalizer(norm='max')
+normalize.fit(X_tot)
 
-def normalize(array):
-    """Normalizes Data"""
-    array = (array - X_avg) / X_std
-    return array
-
-
-row_list = list(range(X_train.shape[0]))
-
-
-# def normalize_rows(array):
-#     for i in row_list:
-#         # array[i] = (array[i] - X_avg[i]) / X_std[i]
-#         array[i] = nz(array[i], norm='l1')
-#     return array
-
-
-# X_tot = normalize_rows(X_tot)
-# X_train = normalize_rows(X_train)
-# X_test = normalize_rows(X_test)
-# X_final = normalize_rows(X_final)
-
-X_tot = normalize(X_tot)
-X_train = normalize(X_train)
-X_test = normalize(X_test)
-X_final = normalize(X_final)
+X_tot = normalize.transform(X_tot)
+X_train = normalize.transform(X_train)
+X_test = normalize.transform(X_test)
+X_final = normalize.transform(X_final)
 
 
 def compute_metrics(y, predict_y):

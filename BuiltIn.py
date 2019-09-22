@@ -97,7 +97,7 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None, n_jobs=None,
 # clf = ComplementNB()
 # clf = MultinomialNB()
 # clf = MLPClassifier(solver='lbfgs', alpha=0.1, activation='tanh', hidden_layer_sizes=(100, 100))
-clf = RandomForestClassifier(n_estimators=150, random_state=0, min_samples_leaf=1)
+clf = RandomForestClassifier(n_estimators=500, random_state=0, min_samples_leaf=1, max_features=15)
 
 clf.fit(X_train.T, np.squeeze(Y_train.T))
 
